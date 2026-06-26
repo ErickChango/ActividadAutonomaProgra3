@@ -9,12 +9,12 @@
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">📚 Libreria</a>
+        <a class="navbar-brand fw-bold" href="index.html">📚 Libreria</a>
         <div class="navbar-nav ms-auto">
-            <a class="nav-link" href="/autores">Autores</a>
-            <a class="nav-link" href="/perfiles">Perfiles</a>
-            <a class="nav-link" href="/libros">Libros</a>
-            <a class="nav-link active" href="/categorias">Categorias</a>
+            <a class="nav-link" href="autores.html">Autores</a>
+            <a class="nav-link" href="perfiles.html">Perfiles</a>
+            <a class="nav-link" href="libros.html">Libros</a>
+            <a class="nav-link active" href="categorias.html">Categorias</a>
         </div>
     </div>
 </nav>
@@ -50,30 +50,32 @@
             <th>Acciones</th>
         </tr>
         </thead>
-        <tbody>
-        <tr th:each="c : ${categorias}">
-            <td th:text="${c.id}"></td>
-            <td th:text="${c.nombre}"></td>
-            <td th:text="${c.descripcion}"></td>
-            <td>
-                <button class="btn btn-sm btn-warning btn-editar"
-                        th:data-id="${c.id}"
-                        th:data-nombre="${c.nombre}"
-                        th:data-descripcion="${c.descripcion}">
-                    Editar
-                </button>
-                <button class="btn btn-sm btn-danger btn-eliminar"
-                        th:data-id="${c.id}">
-                    Eliminar
-                </button>
-            </td>
-        </tr>
-        </tbody>
+        <tbody id="tablaBody"></tbody>
     </table>
 </div>
 
 <script>
-    // guardar o actualizar categoria
+    const API = 'http://localhost:8080/api/categorias';
+
+    async function cargarCategorias() {
+        const res = await fetch(API);
+        const categorias = await res.json();
+        const tbody = document.getElementById('tablaBody');
+        tbody.innerHTML = '';
+        categorias.forEach(function(c) {
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + c.id + '</td>' +
+                '<td>' + c.nombre + '</td>' +
+                '<td>' + c.descripcion + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-sm btn-warning me-1" onclick="editarCategoria(' + c.id + ',\'' + escapeJs(c.nombre) + '\',\'' + escapeJs(c.descripcion) + '\')">Editar</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="eliminarCategoria(' + c.id + ')">Eliminar</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
     document.getElementById('formCategoria').addEventListener('submit', async function(e) {
         e.preventDefault();
         var id = document.getElementById('categoriaId').value;
@@ -81,7 +83,7 @@
             nombre: document.getElementById('nombre').value,
             descripcion: document.getElementById('descripcion').value
         };
-        var url = id ? '/api/categorias/' + id : '/api/categorias';
+        var url = id ? API + '/' + id : API;
         var method = id ? 'PUT' : 'POST';
         var res = await fetch(url, {
             method: method,
@@ -89,42 +91,43 @@
             body: JSON.stringify(body)
         });
         if (res.ok) {
-            location.reload();
+            limpiarForm();
+            cargarCategorias();
         } else {
             var err = await res.json();
             alert(JSON.stringify(err));
         }
     });
 
-    // cargar datos en el formulario para editar
-    document.querySelectorAll('.btn-editar').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.getElementById('categoriaId').value = btn.dataset.id;
-            document.getElementById('nombre').value = btn.dataset.nombre;
-            document.getElementById('descripcion').value = btn.dataset.descripcion;
-            document.getElementById('formTitulo').textContent = 'Editar Categoria';
-        });
-    });
+    function editarCategoria(id, nombre, descripcion) {
+        document.getElementById('categoriaId').value = id;
+        document.getElementById('nombre').value = nombre;
+        document.getElementById('descripcion').value = descripcion;
+        document.getElementById('formTitulo').textContent = 'Editar Categoria';
+    }
 
-    // eliminar categoria
-    document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
-            if (!confirm('Desea eliminar esta categoria?')) return;
-            var res = await fetch('/api/categorias/' + btn.dataset.id, { method: 'DELETE' });
-            if (res.ok) {
-                location.reload();
-            } else {
-                alert('No se pudo eliminar');
-            }
-        });
-    });
+    async function eliminarCategoria(id) {
+        if (!confirm('Desea eliminar esta categoria?')) return;
+        var res = await fetch(API + '/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            cargarCategorias();
+        } else {
+            alert('No se pudo eliminar');
+        }
+    }
 
-    // limpiar formulario
     function limpiarForm() {
         document.getElementById('formCategoria').reset();
         document.getElementById('categoriaId').value = '';
         document.getElementById('formTitulo').textContent = 'Nueva Categoria';
     }
+
+    function escapeJs(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    cargarCategorias();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

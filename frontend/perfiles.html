@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Libreria - Perfiles</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html">📚 Libreria</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="autores.html">Autores</a>
+            <a class="nav-link active" href="perfiles.html">Perfiles</a>
+            <a class="nav-link" href="libros.html">Libros</a>
+            <a class="nav-link" href="categorias.html">Categorias</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Perfiles de Autores</h2>
+    <p class="text-muted">Relacion uno a uno: cada autor tiene un unico perfil</p>
+
+    <div class="card mb-4">
+        <div class="card-header" id="formTitulo">Nuevo Perfil</div>
+        <div class="card-body">
+            <form id="formPerfil">
+                <input type="hidden" id="perfilId"/>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <select class="form-select" id="autorId" required>
+                            <option value="">Seleccionar autor...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" id="nacionalidad" placeholder="Nacionalidad" required/>
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" id="sitioWeb" placeholder="Sitio web (opcional)"/>
+                    </div>
+                    <div class="col-md-3">
+                        <textarea class="form-control" id="biografia" placeholder="Biografia" rows="1" required></textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-2" type="submit">Guardar</button>
+                <button class="btn btn-secondary mt-2" type="button" onclick="limpiarForm()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Autor</th>
+            <th>Nacionalidad</th>
+            <th>Sitio Web</th>
+            <th>Biografia</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody id="tablaBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const API_PERFILES = 'http://localhost:8080/api/perfiles';
+    const API_AUTORES  = 'http://localhost:8080/api/autores';
+
+    async function cargarAutores() {
+        const res = await fetch(API_AUTORES);
+        const autores = await res.json();
+        const sel = document.getElementById('autorId');
+        // mantener la opcion vacia
+        sel.innerHTML = '<option value="">Seleccionar autor...</option>';
+        autores.forEach(function(a) {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = a.nombre + ' ' + a.apellido;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function cargarPerfiles() {
+        const res = await fetch(API_PERFILES);
+        const perfiles = await res.json();
+        const tbody = document.getElementById('tablaBody');
+        tbody.innerHTML = '';
+        perfiles.forEach(function(p) {
+            const sitio = (p.sitioWeb && p.sitioWeb.trim() !== '')
+                ? '<a href="' + p.sitioWeb + '" target="_blank">' + p.sitioWeb + '</a>'
+                : '-';
+            const bio = p.biografia ? p.biografia.substring(0, 60) + (p.biografia.length > 60 ? '...' : '') : '';
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + p.id + '</td>' +
+                '<td>' + p.autor.nombre + ' ' + p.autor.apellido + '</td>' +
+                '<td>' + p.nacionalidad + '</td>' +
+                '<td>' + sitio + '</td>' +
+                '<td>' + bio + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-sm btn-warning me-1" onclick="editarPerfil(' + p.id + ',' + p.autor.id + ',\'' + escapeJs(p.nacionalidad) + '\',\'' + escapeJs(p.sitioWeb || '') + '\',\'' + escapeJs(p.biografia) + '\')">Editar</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="eliminarPerfil(' + p.id + ')">Eliminar</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('formPerfil').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var id = document.getElementById('perfilId').value;
+        var body = {
+            autorId: document.getElementById('autorId').value,
+            biografia: document.getElementById('biografia').value,
+            nacionalidad: document.getElementById('nacionalidad').value,
+            sitioWeb: document.getElementById('sitioWeb').value
+        };
+        var url = id ? API_PERFILES + '/' + id : API_PERFILES;
+        var method = id ? 'PUT' : 'POST';
+        var res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            limpiarForm();
+            cargarPerfiles();
+        } else {
+            var err = await res.json();
+            alert(JSON.stringify(err));
+        }
+    });
+
+    function editarPerfil(id, autorId, nacionalidad, sitioWeb, biografia) {
+        document.getElementById('perfilId').value = id;
+        document.getElementById('autorId').value = autorId;
+        document.getElementById('nacionalidad').value = nacionalidad;
+        document.getElementById('sitioWeb').value = sitioWeb;
+        document.getElementById('biografia').value = biografia;
+        document.getElementById('formTitulo').textContent = 'Editar Perfil';
+    }
+
+    async function eliminarPerfil(id) {
+        if (!confirm('Desea eliminar este perfil?')) return;
+        var res = await fetch(API_PERFILES + '/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            cargarPerfiles();
+        } else {
+            alert('No se pudo eliminar');
+        }
+    }
+
+    function limpiarForm() {
+        document.getElementById('formPerfil').reset();
+        document.getElementById('perfilId').value = '';
+        document.getElementById('formTitulo').textContent = 'Nuevo Perfil';
+    }
+
+    function escapeJs(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    cargarAutores();
+    cargarPerfiles();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
