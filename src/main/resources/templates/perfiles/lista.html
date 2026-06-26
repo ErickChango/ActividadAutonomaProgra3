@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Libreria - Perfiles</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">📚 Libreria</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/autores">Autores</a>
+            <a class="nav-link active" href="/perfiles">Perfiles</a>
+            <a class="nav-link" href="/libros">Libros</a>
+            <a class="nav-link" href="/categorias">Categorias</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Perfiles de Autores</h2>
+    <p class="text-muted">Relacion uno a uno: cada autor tiene un unico perfil</p>
+
+    <div class="card mb-4">
+        <div class="card-header" id="formTitulo">Nuevo Perfil</div>
+        <div class="card-body">
+            <form id="formPerfil">
+                <input type="hidden" id="perfilId"/>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <select class="form-select" id="autorId" required>
+                            <option value="">Seleccionar autor...</option>
+                            <option th:each="a : ${autores}"
+                                    th:value="${a.id}"
+                                    th:text="${a.nombre + ' ' + a.apellido}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" id="nacionalidad" placeholder="Nacionalidad" required/>
+                    </div>
+                    <div class="col-md-3">
+                        <input class="form-control" id="sitioWeb" placeholder="Sitio web (opcional)"/>
+                    </div>
+                    <div class="col-md-3">
+                        <textarea class="form-control" id="biografia" placeholder="Biografia" rows="1" required></textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-2" type="submit">Guardar</button>
+                <button class="btn btn-secondary mt-2" type="button" onclick="limpiarForm()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Autor</th>
+            <th>Nacionalidad</th>
+            <th>Sitio Web</th>
+            <th>Biografia</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${perfiles}">
+            <td th:text="${p.id}"></td>
+            <td th:text="${p.autor.nombre + ' ' + p.autor.apellido}"></td>
+            <td th:text="${p.nacionalidad}"></td>
+            <td>
+                <a th:if="${p.sitioWeb != null and !#strings.isEmpty(p.sitioWeb)}"
+                   th:href="${p.sitioWeb}" target="_blank" th:text="${p.sitioWeb}"></a>
+                <span th:unless="${p.sitioWeb != null and !#strings.isEmpty(p.sitioWeb)}">-</span>
+            </td>
+            <td th:text="${#strings.abbreviate(p.biografia, 60)}"></td>
+            <td>
+                <button class="btn btn-sm btn-warning btn-editar"
+                        th:data-id="${p.id}"
+                        th:data-autor-id="${p.autor.id}"
+                        th:data-nacionalidad="${p.nacionalidad}"
+                        th:data-sitio-web="${p.sitioWeb}"
+                        th:data-biografia="${p.biografia}">
+                    Editar
+                </button>
+                <button class="btn btn-sm btn-danger btn-eliminar"
+                        th:data-id="${p.id}">
+                    Eliminar
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // guardar o actualizar perfil
+    document.getElementById('formPerfil').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var id = document.getElementById('perfilId').value;
+        var body = {
+            autorId: document.getElementById('autorId').value,
+            biografia: document.getElementById('biografia').value,
+            nacionalidad: document.getElementById('nacionalidad').value,
+            sitioWeb: document.getElementById('sitioWeb').value
+        };
+        var url = id ? '/api/perfiles/' + id : '/api/perfiles';
+        var method = id ? 'PUT' : 'POST';
+        var res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            var err = await res.json();
+            alert(JSON.stringify(err));
+        }
+    });
+
+    // cargar datos en el formulario para editar
+    document.querySelectorAll('.btn-editar').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('perfilId').value = btn.dataset.id;
+            document.getElementById('autorId').value = btn.dataset.autorId;
+            document.getElementById('nacionalidad').value = btn.dataset.nacionalidad;
+            document.getElementById('sitioWeb').value = btn.dataset.sitioWeb || '';
+            document.getElementById('biografia').value = btn.dataset.biografia;
+            document.getElementById('formTitulo').textContent = 'Editar Perfil';
+        });
+    });
+
+    // eliminar perfil
+    document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            if (!confirm('Desea eliminar este perfil?')) return;
+            var res = await fetch('/api/perfiles/' + btn.dataset.id, { method: 'DELETE' });
+            if (res.ok) {
+                location.reload();
+            } else {
+                alert('No se pudo eliminar');
+            }
+        });
+    });
+
+    // limpiar formulario
+    function limpiarForm() {
+        document.getElementById('formPerfil').reset();
+        document.getElementById('perfilId').value = '';
+        document.getElementById('formTitulo').textContent = 'Nuevo Perfil';
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

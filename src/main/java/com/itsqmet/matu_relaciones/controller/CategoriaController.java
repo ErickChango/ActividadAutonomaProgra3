@@ -1,7 +1,7 @@
 package com.itsqmet.matu_relaciones.controller;
 
-import com.itsqmet.matu_relaciones.model.curso;
-import com.itsqmet.matu_relaciones.service.CursoService;
+import com.itsqmet.matu_relaciones.model.Categoria;
+import com.itsqmet.matu_relaciones.service.CategoriaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,28 +13,28 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/cursos")
+@RequestMapping("/api/categorias")
 @CrossOrigin("*")
-public class CursoController {
+public class CategoriaController {
 
     @Autowired
-    private CursoService cursoService;
+    private CategoriaService categoriaService;
 
     @GetMapping
-    public ResponseEntity<List<curso>> obtenerTodos() {
-        return ResponseEntity.ok(cursoService.obtenerTodos());
+    public ResponseEntity<List<Categoria>> obtenerTodas() {
+        return ResponseEntity.ok(categoriaService.obtenerTodas());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
-        return cursoService.obtenerPorId(id)
+        return categoriaService.obtenerPorId(id)
                 .map(c -> ResponseEntity.ok((Object) c))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Curso no encontrado")));
+                        .body(Map.of("error", "Categoría no encontrada")));
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@Valid @RequestBody curso curso,
+    public ResponseEntity<?> crear(@Valid @RequestBody Categoria categoria,
                                    BindingResult result) {
         if (result.hasErrors()) {
             Map<String, String> errores = new HashMap<>();
@@ -43,12 +43,12 @@ public class CursoController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errores);
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(cursoService.crear(curso));
+                .body(categoriaService.crear(categoria));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizar(@PathVariable Long id,
-                                        @Valid @RequestBody curso curso,
+                                        @Valid @RequestBody Categoria categoria,
                                         BindingResult result) {
         if (result.hasErrors()) {
             Map<String, String> errores = new HashMap<>();
@@ -56,18 +56,18 @@ public class CursoController {
                     errores.put(e.getField(), e.getDefaultMessage()));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errores);
         }
-        return cursoService.actualizar(id, curso)
+        return categoriaService.actualizar(id, categoria)
                 .map(c -> ResponseEntity.ok((Object) c))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Curso no encontrado")));
+                        .body(Map.of("error", "Categoría no encontrada")));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
-        if (cursoService.eliminar(id)) {
-            return ResponseEntity.ok(Map.of("mensaje", "Curso eliminado"));
+        if (categoriaService.eliminar(id)) {
+            return ResponseEntity.ok(Map.of("mensaje", "Categoría eliminada"));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Curso no encontrado"));
+                .body(Map.of("error", "Categoría no encontrada"));
     }
 }

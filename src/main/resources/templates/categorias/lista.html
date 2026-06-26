@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Libreria - Categorias</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">📚 Libreria</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/autores">Autores</a>
+            <a class="nav-link" href="/perfiles">Perfiles</a>
+            <a class="nav-link" href="/libros">Libros</a>
+            <a class="nav-link active" href="/categorias">Categorias</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Categorias</h2>
+
+    <div class="card mb-4">
+        <div class="card-header" id="formTitulo">Nueva Categoria</div>
+        <div class="card-body">
+            <form id="formCategoria">
+                <input type="hidden" id="categoriaId"/>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input class="form-control" id="nombre" placeholder="Nombre" required/>
+                    </div>
+                    <div class="col-md-8">
+                        <input class="form-control" id="descripcion" placeholder="Descripcion" required/>
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-2" type="submit">Guardar</button>
+                <button class="btn btn-secondary mt-2" type="button" onclick="limpiarForm()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Descripcion</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${categorias}">
+            <td th:text="${c.id}"></td>
+            <td th:text="${c.nombre}"></td>
+            <td th:text="${c.descripcion}"></td>
+            <td>
+                <button class="btn btn-sm btn-warning btn-editar"
+                        th:data-id="${c.id}"
+                        th:data-nombre="${c.nombre}"
+                        th:data-descripcion="${c.descripcion}">
+                    Editar
+                </button>
+                <button class="btn btn-sm btn-danger btn-eliminar"
+                        th:data-id="${c.id}">
+                    Eliminar
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // guardar o actualizar categoria
+    document.getElementById('formCategoria').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var id = document.getElementById('categoriaId').value;
+        var body = {
+            nombre: document.getElementById('nombre').value,
+            descripcion: document.getElementById('descripcion').value
+        };
+        var url = id ? '/api/categorias/' + id : '/api/categorias';
+        var method = id ? 'PUT' : 'POST';
+        var res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            var err = await res.json();
+            alert(JSON.stringify(err));
+        }
+    });
+
+    // cargar datos en el formulario para editar
+    document.querySelectorAll('.btn-editar').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('categoriaId').value = btn.dataset.id;
+            document.getElementById('nombre').value = btn.dataset.nombre;
+            document.getElementById('descripcion').value = btn.dataset.descripcion;
+            document.getElementById('formTitulo').textContent = 'Editar Categoria';
+        });
+    });
+
+    // eliminar categoria
+    document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            if (!confirm('Desea eliminar esta categoria?')) return;
+            var res = await fetch('/api/categorias/' + btn.dataset.id, { method: 'DELETE' });
+            if (res.ok) {
+                location.reload();
+            } else {
+                alert('No se pudo eliminar');
+            }
+        });
+    });
+
+    // limpiar formulario
+    function limpiarForm() {
+        document.getElementById('formCategoria').reset();
+        document.getElementById('categoriaId').value = '';
+        document.getElementById('formTitulo').textContent = 'Nueva Categoria';
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
